@@ -91,6 +91,8 @@ private:
 
     endpoint local_addr_;
     endpoint remote_addr_;
+
+    co_timer timer_;
 };
 
 class TcpServer

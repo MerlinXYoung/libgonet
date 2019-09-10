@@ -6,6 +6,8 @@
 #include "tcp_detail.h"
 #include <chrono>
 #include <boost/bind.hpp>
+#include <libgo/netio/unix/hook.h>
+#define go_dispatch(...) go
 
 namespace network {
 namespace tcp_detail {
@@ -19,8 +21,9 @@ namespace tcp_detail {
     void TcpSession::Msg::Done(boost_ec const& ec)
     {
         if (tid) {
-            co_timer_cancel(tid);
-            tid.reset();
+            // co_timer_cancel(tid);
+            // tid.reset();
+            tid.StopTimer();
         }
 
         if (cb) {
@@ -37,7 +40,7 @@ namespace tcp_detail {
         : socket_(s), holder_(holder), recv_buf_(opt.max_pack_size_),
         max_pack_size_shrink_((std::max)(opt.max_pack_size_shrink_, opt.max_pack_size_)),
         max_pack_size_hard_((std::max)(opt.max_pack_size_hard_, opt.max_pack_size_)),
-        msg_chan_((std::size_t)-1)
+        msg_chan_((std::size_t)-1),timer_(std::chrono::milliseconds(1))
     {
         boost_ec ignore_ec;
         local_addr_ = endpoint(s->native_socket().local_endpoint(ignore_ec), endpoint_ext);
@@ -56,8 +59,8 @@ namespace tcp_detail {
 
     void TcpSession::goStart()
     {
-        co::initialize_socket_async_methods(socket_->native_handle());
-        co::set_et_mode(socket_->native_handle());
+        //co::initialize_socket_async_methods(socket_->native_handle());
+        //co::set_et_mode(socket_->native_handle());
         if (opt_.connect_cb_)
             opt_.connect_cb_(GetSession());
 
@@ -271,7 +274,7 @@ retry_write:
 retry_poll:
                         if (!msg_shutdown) {
                             pfd.revents = 0;
-                            co::reset_writable(socket_->native_handle());
+                            //co::reset_writable(socket_->native_handle());
                             DebugPrint(dbg_session_alive, "goSend enter poll(timeout=%d)", timeo);
                             int res = ::poll(&pfd, 1, timeo);
                             DebugPrint(dbg_session_alive, "goSend exit poll(timeout=%d)", timeo);
@@ -399,7 +402,7 @@ retry_poll:
             msg->pos = written;
             msg->send_half = true;
             if (opt_.sndtimeo_) {
-                msg->tid = co_timer_add(std::chrono::milliseconds(opt_.sndtimeo_),
+                msg->tid = timer_.ExpireAt(std::chrono::milliseconds(opt_.sndtimeo_),
                         [=]{
                             msg->timeout = true;
                         });
@@ -463,7 +466,7 @@ retry_poll:
             msg->pos = 0;
             msg->send_half = true;
             if (opt_.sndtimeo_) {
-                msg->tid = co_timer_add(std::chrono::milliseconds(opt_.sndtimeo_),
+                msg->tid = timer_.ExpireAt(std::chrono::milliseconds(opt_.sndtimeo_),
                         [=]{
                             msg->timeout = true;
                         });
@@ -491,7 +494,7 @@ retry_poll:
         auto msg = boost::make_shared<Msg>(++msg_id_, cb);
         msg->buf.swap(buf);
         if (opt_.sndtimeo_) {
-            msg->tid = co_timer_add(std::chrono::milliseconds(opt_.sndtimeo_),
+            msg->tid = timer_.ExpireAt(std::chrono::milliseconds(opt_.sndtimeo_),
                     [=]{
                         msg->timeout = true;
                     });
