@@ -1,6 +1,6 @@
 #include "udp_detail.h"
 #include <boost/make_shared.hpp>
-
+#define go_dispatch(...) go
 namespace network {
 namespace udp_detail {
 
