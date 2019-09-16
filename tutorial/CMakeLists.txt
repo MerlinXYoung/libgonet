@@ -10,9 +10,14 @@ else()
     set(CMAKE_BUILD_TYPE RELEASE)
 endif()
 
-aux_source_directory(${PROJECT_SOURCE_DIR} SRC_LIST)
-
-set(LINK_ARGS libgonet libgo libgo_main boost_context boost_regex boost_system boost_thread pthread dl)
+#aux_source_directory(${PROJECT_SOURCE_DIR} SRC_LIST)
+file(GLOB SRC_LIST "*.cpp")
+message(STATUS "tutorial")
+include_directories("${PROJECT_SOURCE_DIR}/../")
+link_directories(${PROJECT_BINARY_DIR}/../)
+link_directories(${Libgo_LIBRARY_DIR})
+message(STATUS "libgo:${Libgo_LIBRARY_DIR}")
+set(LINK_ARGS libgonet libgo  boost_context boost_regex boost_system boost_thread pthread dl)
 set(LINK_ARGS ${LINK_ARGS} ssl crypto)
 
 foreach(var ${SRC_LIST})
