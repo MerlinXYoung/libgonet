@@ -14,7 +14,7 @@ using namespace network;
 size_t OnMessage(SessionEntry sess, const char* data, size_t bytes)
 {
     printf("receive: %lu\n", bytes);
-    uint32_t len = *reinterpret_cast<const uint32_t*>(data);
+    uint32_t len = ntohl(*reinterpret_cast<const uint32_t*>(data));
     printf("receive pkg_len: %u\n", len);
     printf("receive: %.*s\n", (int)len, data+sizeof(uint32_t));
 
@@ -56,10 +56,11 @@ int main()
                 if(strcmp(buf,"exit")==0)
                     break;
                 uint32_t len = strlen(buf);
-                client.Send(&len, sizeof(len), [](boost_ec ec) {
+                uint32_t nlen = htonl(len);
+                client.Send(&nlen, sizeof(nlen), [](boost_ec ec) {
                             printf("send len ec:%s\n", ec.message().c_str());
                         });
-                client.Send((void*)buf, strlen(buf), [](boost_ec ec) {
+                client.Send((void*)buf, len, [](boost_ec ec) {
                             printf("send ec:%s\n", ec.message().c_str());
                         });
             }
