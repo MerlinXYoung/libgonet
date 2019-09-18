@@ -14,9 +14,17 @@ using namespace network;
 size_t OnMessage(SessionEntry sess, const char* data, size_t bytes)
 {
     printf("receive: %lu\n", bytes);
-    uint32_t len = ntohl(*reinterpret_cast<const uint32_t*>(data));
-    printf("receive pkg_len: %u\n", len);
-    printf("receive: %.*s\n", (int)len, data+sizeof(uint32_t));
+    const char* curr = data;
+    const char* end = data+bytes;
+    do 
+    {
+        uint32_t len = ntohl(*reinterpret_cast<const uint32_t*>(curr));
+        curr+=sizeof(uint32_t);
+
+        printf("receive pkg_len: %u\n", len);
+        printf("receive: %.*s\n", (int)len, curr);
+        curr +=len;
+    }while(curr != end);
 
     //sess->Shutdown();   // 收到回复后关闭连接
     return bytes;
