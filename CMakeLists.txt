@@ -50,7 +50,7 @@ add_library("${TARGET}" STATIC ${SRC_LIST})
 
 # add_subdirectory(test)
 
-add_subdirectory(app)
+# add_subdirectory(app)
 
 #set(CMAKE_INSTALL_PREFIX "/usr/local")
 install(TARGETS ${TARGET} LIBRARY DESTINATION "lib" ARCHIVE DESTINATION "lib")
