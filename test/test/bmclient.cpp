@@ -8,7 +8,7 @@
 #endif
 using namespace std;
 using namespace co;
-using namespace network;
+using namespace gonet;
 
 #define MB / (1024 * 1024)
 
@@ -35,13 +35,13 @@ void start_client(std::string url)
 {
     Client c;
 
-#if ENABLE_SSL
+
     OptionSSL ssl_opt;
     ssl_opt.certificate_chain_file = "server.crt";
     ssl_opt.private_key_file = "server.key";
     ssl_opt.tmp_dh_file = "dh2048.pem";
     c.SetSSLOption(ssl_opt);
-#endif
+
 
     c.SetMaxPackSize(recv_buffer_length);
     c.SetMaxPackSizeHard(-1);
@@ -146,16 +146,17 @@ void show_status()
     last_client_recv = g_client_recv;
     last_qps = g_qps;
 
-    co_timer_add(std::chrono::seconds(1), [=]{ show_status(); });
+    co_timer timer(&co_sched);
+    timer.ExpireAt(std::chrono::seconds(1), [=]{ show_status(); });
 }
 
 int main(int argc, char** argv)
 {
-//    co_sched.GetOptions().debug = network::dbg_no_delay | network::dbg_session_alive;
+//    co_sched.GetOptions().debug = ::gonet::dbg_no_delay | ::gonet::dbg_session_alive;
 //    co_sched.GetOptions().debug_output = fopen("logclient", "w");
 //    co_sched.GetOptions().enable_coro_stat = true;
-//    co_sched.GetOptions().debug = network::dbg_session_alive | co::dbg_hook;
-    co_sched.GetOptions().enable_work_steal = false;
+//    co_sched.GetOptions().debug = ::gonet::dbg_session_alive | co::dbg_hook;
+    // co_sched.GetOptions().enable_work_steal = false;
 
     if (argc > 1 && argv[1] == std::string("-h")) {
         printf("Usage %s [PackageSize] [Conn] [Pipeline] [NoDelay] [recv_buffer_length(KB)] [Threads] [URL]\n\n", argv[0]);
@@ -191,10 +192,11 @@ int main(int argc, char** argv)
     for (int i = 0; i < conn; ++i)
         go [&]{ start_client(g_url); };
 
-    co_timer_add(std::chrono::milliseconds(100), [=]{ show_status(); });
+    co_timer timer(&co_sched);
+    timer.ExpireAt(std::chrono::milliseconds(100), [=]{ show_status(); });
     boost::thread_group tg;
     for (int i = 0; i < g_thread_count; ++i)
-        tg.create_thread([]{ co_sched.RunLoop(); });
+        tg.create_thread([]{ co_sched.Start(); });
     tg.join_all();
     return 0;
 }

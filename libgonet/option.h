@@ -1,12 +1,12 @@
 #pragma once
 #include "config.h"
 #include "abstract.h"
-
-namespace network {
+#include <boost/asio/ssl/context.hpp>
+namespace gonet {
 
 struct OptionSSL
 {
-#if ENABLE_SSL
+
     enum class verify_mode_t
     {
         none,
@@ -32,7 +32,7 @@ struct OptionSSL
     std::string private_key_file;
     std::string tmp_dh_file;
     std::string verify_file;
-#endif
+
 };
 
 // AOP @ accept before and after.
@@ -50,15 +50,22 @@ struct OptionsUser
     uint32_t max_pack_size_shrink_ = 1024 * 1024;
     uint32_t max_pack_size_hard_ = 4 * 1024 * 1024;
     uint32_t max_connection_ = std::numeric_limits<uint32_t>::max();
+    // boost::shared_ptr<OptionSSL> ssl_option_;
     OptionSSL ssl_option_;
     OptionsAcceptAspect accept_aspect_;
 };
-
-struct OptionsData : public OptionsUser
+struct OptionsCb
 {
     ConnectedCb connect_cb_;
     ReceiveCb receive_cb_;
     DisconnectedCb disconnect_cb_;
+};
+
+struct OptionsData : public OptionsUser, public OptionsCb
+{
+    // ConnectedCb connect_cb_;
+    // ReceiveCb receive_cb_;
+    // DisconnectedCb disconnect_cb_;
 
     static OptionsData& DefaultOption()
     {
@@ -263,4 +270,4 @@ struct Options : public OptionsBase
     }
 };
 
-}//namespace network
+}//namespace gonet

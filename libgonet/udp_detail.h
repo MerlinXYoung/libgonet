@@ -5,7 +5,7 @@
 #include "abstract.h"
 #include "option.h"
 
-namespace network {
+namespace gonet {
 namespace udp_detail {
 
 using namespace boost::asio;
@@ -14,7 +14,7 @@ using boost_ec = boost::system::error_code;
 using boost::shared_ptr;
 
 class UdpPoint;
-struct _udp_sess_id_t : public ::network::SessionBase
+struct _udp_sess_id_t : public ::gonet::SessionBase
 {
     shared_ptr<UdpPoint> udp_point;
     endpoint remote_addr;
@@ -76,6 +76,6 @@ typedef UdpPoint UdpServer;
 typedef UdpPoint UdpClient;
 
 } //namespace udp_detail
-} //namespace network
+} //namespace gonet
 
 

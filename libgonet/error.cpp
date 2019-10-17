@@ -1,7 +1,7 @@
 #include "error.h"
 #include "option.h"
 
-namespace network
+namespace gonet
 {
 
 #ifdef BOOST_SYSTEM_NOEXCEPT
@@ -74,4 +74,4 @@ void ThrowError(eNetworkErrorCode code, const char* what)
     throw boost::system::system_error(MakeNetworkErrorCode(code), what);
 }
 
-} //namespace network
+} //namespace gonet

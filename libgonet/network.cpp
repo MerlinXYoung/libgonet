@@ -1,7 +1,7 @@
 #include "network.h"
 #include "error.h"
 
-namespace network {
+namespace gonet {
 
     Server::Server()
         : local_addr_(new endpoint)
@@ -166,4 +166,4 @@ namespace network {
         return *protocol_;
     }
 
-} //namespace network
+} //namespace gonet

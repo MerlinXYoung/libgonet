@@ -9,6 +9,7 @@
 #include <stdint.h>
 #include <atomic>
 #include <exception>
+// #include <memory>
 
 // boost
 #include <boost/asio.hpp>
@@ -20,12 +21,13 @@
 #include <boost/system/system_error.hpp>
 
 #include <boost/shared_ptr.hpp>
+
 #include <boost/make_shared.hpp>
 #include <boost/smart_ptr/enable_shared_from_this.hpp>
 
-#if ENABLE_SSL
+
 #include <boost/asio/ssl.hpp>
-#endif
+
 
 // linux
 #include <signal.h>

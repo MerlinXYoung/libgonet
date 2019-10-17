@@ -10,7 +10,7 @@
 #include <errno.h>
 using namespace std;
 using namespace co;
-using namespace network;
+using namespace gonet;
 
 
 int main(int argc, char** argv)
@@ -69,13 +69,13 @@ int main(int argc, char** argv)
     };
     server.SetAcceptAspect(aop_accept);
 
-#if ENABLE_SSL
+
     OptionSSL ssl_opt;
     ssl_opt.certificate_chain_file = "server.crt";
     ssl_opt.private_key_file = "server.key";
     ssl_opt.tmp_dh_file = "dh2048.pem";
     server.SetSSLOption(ssl_opt);
-#endif
+
 
     server.SetConnectedCb([&](SessionEntry sess){
         printf("[%d] connected from %s:%d\n", getpid(), sess->RemoteAddr().address().to_string().c_str(), sess->RemoteAddr().port());
@@ -106,5 +106,5 @@ int main(int argc, char** argv)
 
     server.goStartAfterFork();
 
-    co_sched.RunUntilNoTask();
+    co_sched.Start();
 }

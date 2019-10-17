@@ -1,7 +1,7 @@
 #include "udp_detail.h"
 #include <boost/make_shared.hpp>
 #define go_dispatch(...) go
-namespace network {
+namespace gonet {
 namespace udp_detail {
 
     void _udp_sess_id_t::SendNoDelay(Buffer && buf, SndCb const& cb)
@@ -194,5 +194,5 @@ namespace udp_detail {
     }
 
 } //namespace udp_detail
-} //namespace network
+} //namespace gonet
 

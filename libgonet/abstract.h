@@ -2,7 +2,7 @@
 #include "config.h"
 #include "error.h"
 
-namespace network {
+namespace gonet {
 
     static const uint64_t dbg_accept_error           = co::dbg_sys_max;
     static const uint64_t dbg_accept_debug           = co::dbg_sys_max << 1;
@@ -226,7 +226,7 @@ namespace network {
 
     struct Protocol
     {
-        typedef ::network::endpoint endpoint;
+        typedef ::gonet::endpoint endpoint;
         virtual ~Protocol() {}
 
         static Protocol v4();
@@ -252,4 +252,4 @@ namespace network {
 # define NETWORK_UPPER_CAST(dest) (dest*)
 #endif
 
-} //namespace network
+} //namespace gonet

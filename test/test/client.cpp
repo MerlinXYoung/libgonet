@@ -4,7 +4,7 @@
 #include <libgonet/network.h>
 using namespace std;
 using namespace co;
-using namespace network;
+using namespace gonet;
 
 void on_disconnect(SessionEntry sess, boost_ec const& ec)
 {
@@ -13,16 +13,16 @@ void on_disconnect(SessionEntry sess, boost_ec const& ec)
 
 void foo(std::string url)
 {
-    co_sched.GetOptions().debug = dbg_session_alive;
+    // co_sched.GetOptions().debug = dbg_session_alive;
     Client client;
 
-#if ENABLE_SSL
+
     OptionSSL ssl_opt;
     ssl_opt.certificate_chain_file = "server.crt";
     ssl_opt.private_key_file = "server.key";
     ssl_opt.tmp_dh_file = "dh2048.pem";
     client.SetSSLOption(ssl_opt);
-#endif
+
 
     client.SetConnectedCb([&](SessionEntry sess){
         printf("connected.\n");
@@ -84,7 +84,7 @@ int main(int argc, char **argv)
     }
 
     go [url]{ foo(url); };
-    co_sched.RunUntilNoTask();
+    co_sched.Start();
     return 0;
 }
 

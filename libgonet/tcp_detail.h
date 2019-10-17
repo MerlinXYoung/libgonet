@@ -6,7 +6,7 @@
 #include "option.h"
 #include "tcp_socket.h"
 
-namespace network {
+namespace gonet {
 namespace tcp_detail {
 
 using namespace boost::asio;
@@ -20,7 +20,7 @@ io_service& GetTcpIoService();
 
 class TcpServer;
 class TcpSession
-    : public Options<TcpSession>,
+    : /*public Options<TcpSession>,*/
     public boost::enable_shared_from_this<TcpSession>,
     public SessionBase
 {
@@ -46,7 +46,7 @@ public:
     typedef std::list<boost::shared_ptr<Msg>> MsgList;
 
     explicit TcpSession(shared_ptr<tcp_socket> s, shared_ptr<LifeHolder> holder,
-            OptionsData & opt, endpoint::ext_t const& endpoint_ext);
+            const OptionsData & opt, endpoint::ext_t const& endpoint_ext);
     ~TcpSession();
     void goStart();
     SessionEntry GetSession();
@@ -71,7 +71,10 @@ private:
     void ShutdownRecv();
 
 private:
+
     shared_ptr<tcp_socket> socket_;
+
+    
     shared_ptr<LifeHolder> holder_;
     Buffer recv_buf_;
     uint32_t max_pack_size_shrink_;
@@ -93,6 +96,11 @@ private:
     endpoint remote_addr_;
 
     co_timer timer_;
+
+    const OptionsUser& opt_;
+    OptionsCb cb_;
+    friend class TcpClient;
+    friend class TcpServer;
 };
 
 class TcpServer
@@ -100,7 +108,7 @@ class TcpServer
     public boost::enable_shared_from_this<TcpServer>
 {
 public:
-    typedef std::map<::network::SessionEntry, shared_ptr<TcpSession>> Sessions;
+    typedef std::map<::gonet::SessionEntry, shared_ptr<TcpSession>> Sessions;
 
     boost_ec goStartBeforeFork(endpoint addr) override;
     void goStartAfterFork() override;
@@ -114,7 +122,7 @@ public:
 
 private:
     void Accept();
-    void OnSessionClose(::network::SessionEntry id, boost_ec const& ec);
+    void OnSessionClose(::gonet::SessionEntry id, boost_ec const& ec);
 
 private:
     shared_ptr<tcp::acceptor> acceptor_;
@@ -140,7 +148,7 @@ public:
     OptionsBase* GetOptions() override { return this; }
 
 private:
-    void OnSessionClose(::network::SessionEntry id, boost_ec const& ec);
+    void OnSessionClose(::gonet::SessionEntry id, boost_ec const& ec);
 
 private:
     shared_ptr<TcpSession> sess_;
@@ -149,6 +157,6 @@ private:
 };
 
 } //namespace tcp_detail
-} //namespace network
+} //namespace gonet
 
 

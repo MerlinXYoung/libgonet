@@ -5,7 +5,7 @@
 #include <atomic>
 #include <chrono>
 #include <iostream>
-using namespace network;
+using namespace gonet;
 using namespace std;
 using namespace std::chrono;
 
@@ -65,10 +65,10 @@ int main(int argc, char* argv[])
         std::string url = std::string("tcp://") + ip +  ":" + std::to_string(port);
         start_time = system_clock::now();
 
-        std::list<network::Client*> clients;
+        std::list<::gonet::Client*> clients;
         for (int i = 0; i < sessionCount; ++i)
         {
-            network::Client *client = new network::Client;
+            ::gonet::Client *client = new ::gonet::Client;
             client->SetConnectedCb(&onConnection);
             client->SetReceiveCb(&onMessage);
             boost_ec ec = client->Connect(url);

@@ -1,7 +1,7 @@
 #pragma once
 #include "config.h"
 
-namespace network
+namespace gonet
 {
 
 using boost_ec = boost::system::error_code;
@@ -46,4 +46,4 @@ boost_ec MakeNetworkErrorCode(eNetworkErrorCode code);
 
 void ThrowError(eNetworkErrorCode code, const char* what = "");
 
-} //namespace network
+} //namespace gonet

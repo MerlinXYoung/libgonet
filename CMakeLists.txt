@@ -9,24 +9,26 @@ else()
     set(CMAKE_BUILD_TYPE RELEASE)
 endif()
 
-option(ENABLE_SSL "enable openssl" OFF)
-option(ENABLE_SYS_LIBGO "system libgo" OFF)
+option(ENABLE_SYS_LIBGO "system libgo" ON)
+
 option(ENABLE_TUTORIAL "enable build tutorial" OFF)
 if(ENABLE_SYS_LIBGO)
+	set(Libgo_DIR /usr/local/libgo)
 	message(STATUS "ENABLE_SYS_LIBGO:${ENABLE_SYS_LIBGO} ${Libgo_DIR}")
 endif()
-if (ENABLE_SSL)
-    set(ENABLE_SSL 1)
-else()
-    set(ENABLE_SSL 0)
-endif()
+
 configure_file(${PROJECT_SOURCE_DIR}/libgonet/cmake_config.h.in ${PROJECT_SOURCE_DIR}/libgonet/cmake_config.h)
 
 message("CMAKE_BUILD_TYPE: ${CMAKE_BUILD_TYPE}")
-message("ENABLE_SSL: ${ENABLE_SSL}")
+
 
 set(CMAKE_CXX_FLAGS "-std=c++11 -Wall -Werror -fPIC -g -pg")
 set(CMAKE_CXX_FLAGS_DEBUG "-g -pg ${CMAKE_CXX_FLAGS}")
+
+set(CMAKE_PREFIX_PATH ${CMAKE_PREFIX_PATH} /usr/local/boost)
+find_package(Boost 1.65 REQUIRED)
+include_directories(${Boost_INCLUDE_DIR})
+link_directories(${Boost_LIBRARY_DIRS})
 
 aux_source_directory(libgonet SRC_LIST)
 include_directories("${PROJECT_SOURCE_DIR}")
@@ -45,6 +47,10 @@ endif()
 set(TARGET "libgonet")
 
 add_library("${TARGET}" STATIC ${SRC_LIST})
+
+# add_subdirectory(test)
+
+add_subdirectory(app)
 
 #set(CMAKE_INSTALL_PREFIX "/usr/local")
 install(TARGETS ${TARGET} LIBRARY DESTINATION "lib" ARCHIVE DESTINATION "lib")

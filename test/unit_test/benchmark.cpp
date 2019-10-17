@@ -7,7 +7,7 @@
 #include <libgonet/network.h>
 using namespace std;
 using namespace co;
-using namespace network;
+using namespace gonet;
 
 #define MB / (1024 * 1024)
 
@@ -158,8 +158,8 @@ void show_status(bool* bexit)
     last_client_send = g_client_send;
     last_client_send_err = g_client_send_err;
     last_client_recv = g_client_recv;
-
-    co_timer_add(std::chrono::seconds(1), [=]{ show_status(bexit); });
+    co_timer timer(&co_sched);
+    timer.ExpireAt(std::chrono::seconds(1), [=]{ show_status(bexit); });
 }
 
 using ::testing::TestWithParam;
@@ -173,8 +173,8 @@ struct Benchmark : public TestWithParam<int>
 
 TEST_P(Benchmark, BenchmarkT)
 {
-//    co_sched.GetOptions().debug = network::dbg_session_alive;
-//    co_sched.GetOptions().debug = network::dbg_session_alive | co::dbg_hook;
+//    co_sched.GetOptions().debug = ::gonet::dbg_session_alive;
+//    co_sched.GetOptions().debug = ::gonet::dbg_session_alive | co::dbg_hook;
 
     bool *bexit = new bool(false);
 //    bool bexit = true;
@@ -183,14 +183,15 @@ TEST_P(Benchmark, BenchmarkT)
     for (int i = 0; i < n_; ++i)
         go [&]{ start_client(g_url, bexit); };
 
-    co_timer_add(std::chrono::seconds(10), [=]{ *bexit = true; });
-    co_timer_add(std::chrono::milliseconds(500), [=]{ show_status(bexit); });
+    co_timer timer(&co_sched);
+    timer.ExpireAt(std::chrono::seconds(10), [=]{ *bexit = true; });
+    timer.ExpireAt(std::chrono::milliseconds(500), [=]{ show_status(bexit); });
 
 //    co_sched.RunUntilNoTask();
 
     boost::thread_group tg;
     for (int i = 0; i < g_thread_count; ++i)
-        tg.create_thread([]{ co_sched.RunUntilNoTask(); });
+        tg.create_thread([]{ co_sched.Start(); });
     tg.join_all();
 }
 

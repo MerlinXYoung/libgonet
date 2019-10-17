@@ -5,7 +5,7 @@
 #include "tcp.h"
 #include "udp.h"
 
-namespace network
+namespace gonet
 {
     class Server : public Options<Server>
     {
@@ -58,4 +58,4 @@ namespace network
         boost::shared_ptr<endpoint> remote_addr_;
     };
 
-} //namespace network
+} //namespace gonet

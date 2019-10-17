@@ -2,7 +2,7 @@
 #include "config.h"
 #include "option.h"
 
-namespace network {
+namespace gonet {
 
     using namespace ::boost::asio;
     using namespace ::boost::asio::ip;
@@ -19,31 +19,33 @@ namespace network {
         server,
     };
 
-#if ENABLE_SSL
-    typedef std::unique_ptr<ssl::context> tcp_context;
-#else
-    struct tcp_context {};
-#endif
+
+    typedef std::unique_ptr<ssl::context> ssl_context;
+
+    // struct tcp_context {};
 
     class tcp_socket
     {
     public:
-        tcp_socket(io_service& ios, tcp_socket_type_t type, tcp_context & ctx)
-            : type_(type)
+        tcp_socket(io_service& ios/*, tcp_context & ctx*/)
+            : type_(tcp_socket_type_t::tcp),socket_(new tcp::socket(ios))
         {
-            if (type_ == tcp_socket_type_t::tcp)
-                tcp_socket_.reset(new tcp::socket(ios));
-            else {
-#if ENABLE_SSL
-                tcp_ssl_socket_.reset(new ssl::stream<tcp::socket>(ios, *ctx));
-#else
-                throw std::invalid_argument("Not support ssl, please rebuild libgonet with cmake option: -DENABLE_SSL=ON");
-#endif
-            }
+
         }
 
-#if ENABLE_SSL
-        static tcp_context create_tcp_context(OptionSSL const& ssl_opt)
+        tcp_socket(io_service& ios, ssl_context & ctx)
+            : type_(tcp_socket_type_t::ssl),socket_(new ssl::stream<tcp::socket>(ios, *ctx))
+        {
+
+        }
+
+        ~tcp_socket(){
+            if (type_ == tcp_socket_type_t::ssl)
+                socket_.ssl_.~unique_ptr();
+            else
+                socket_.tcp_.~unique_ptr();
+        }
+        static ssl_context create_context(OptionSSL const& ssl_opt)
         {
             std::unique_ptr<ssl::context> ctx(new ssl::context((ssl::context::method)ssl_opt.ssl_version));
 
@@ -77,12 +79,12 @@ namespace network {
                 ctx->use_tmp_dh_file(ssl_opt.tmp_dh_file);
             return std::move(ctx);
         }
-#else
-        static tcp_context create_tcp_context(OptionSSL const&)
-        {
-            return tcp_context();
-        }
-#endif
+
+        // static tcp_context create_context()
+        // {
+        //     return tcp_context();
+        // }
+
 
         tcp_socket_type_t type() const
         {
@@ -91,11 +93,11 @@ namespace network {
 
         tcp::socket& native_socket()
         {
-#if ENABLE_SSL
+
             if (type_ == tcp_socket_type_t::ssl)
-                return tcp_ssl_socket_->next_layer();
-#endif
-            return *tcp_socket_;
+                return socket_.ssl_->next_layer();
+
+            return *socket_.tcp_;
         }
 
         tcp::socket::native_handle_type native_handle()
@@ -106,33 +108,30 @@ namespace network {
         boost::system::error_code handshake(handshake_type_t type)
         {
             boost::system::error_code ec;
-#if ENABLE_SSL
+
             if (type_ == tcp_socket_type_t::ssl) {
-                return tcp_ssl_socket_->handshake(
+                return socket_.ssl_->handshake(
                         type == handshake_type_t::client ? ssl::stream_base::client : ssl::stream_base::server,
                         ec);
             }
-#endif
             return ec;
         }
 
         boost::system::error_code shutdown(socket_base::shutdown_type type)
         {
             boost::system::error_code ec;
-#if ENABLE_SSL
+
             if (type_ == tcp_socket_type_t::ssl)
-                return tcp_ssl_socket_->shutdown(ec);
-#endif
-            return tcp_socket_->shutdown(type, ec);
+                return socket_.ssl_->shutdown(ec);
+            return socket_.tcp_->shutdown(type, ec);
         }
 
         boost::system::error_code close()
         {
             boost::system::error_code ec;
-#if ENABLE_SSL
+
             if (type_ == tcp_socket_type_t::ssl)
-                tcp_ssl_socket_->shutdown(ec);
-#endif
+                socket_.ssl_->shutdown(ec);
 
             return native_socket().close(ec);
         }
@@ -141,32 +140,36 @@ namespace network {
             std::size_t read_some(const MutableBufferSequence& buffers,
                     boost::system::error_code& ec)
             {
-#if ENABLE_SSL
-                if (type_ == tcp_socket_type_t::ssl)
-                    return tcp_ssl_socket_->read_some(buffers, ec);
-#endif
 
-                return tcp_socket_->read_some(buffers, ec);
+                if (type_ == tcp_socket_type_t::ssl)
+                    return socket_.ssl_->read_some(buffers, ec);
+
+                return socket_.tcp_->read_some(buffers, ec);
             }
 
         template <typename ConstBufferSequence>
             std::size_t write_some(const ConstBufferSequence& buffers,
                     boost::system::error_code& ec)
             {
-#if ENABLE_SSL
-                if (type_ == tcp_socket_type_t::ssl)
-                    return tcp_ssl_socket_->write_some(buffers, ec);
-#endif
 
-                return tcp_socket_->write_some(buffers, ec);
+                if (type_ == tcp_socket_type_t::ssl)
+                    return socket_.ssl_->write_some(buffers, ec);
+
+                return socket_.tcp_->write_some(buffers, ec);
             }
 
     private:
         tcp_socket_type_t type_;
-        std::unique_ptr<tcp::socket> tcp_socket_;
-#if ENABLE_SSL
-        std::unique_ptr<ssl::stream<tcp::socket>> tcp_ssl_socket_;
-#endif
+        union S
+        {
+            //char placeholder_[sizeof(std::unique_ptr<tcp::socket>)];
+            std::unique_ptr<tcp::socket> tcp_;
+            std::unique_ptr<ssl::stream<tcp::socket>> ssl_;
+            S(tcp::socket* s):tcp_(s){}
+            S(ssl::stream<tcp::socket>* s):ssl_(s){}
+            ~S(){};
+        }socket_;
+
     };
 
-} //namespace network
+} //namespace gonet

@@ -2,7 +2,7 @@
 #include "udp_detail.h"
 #include "abstract.h"
 
-namespace network {
+namespace gonet {
 
 class udp : public Protocol
 {
@@ -18,4 +18,4 @@ public:
     static udp* instance();
 };
 
-}//namespace network
+}//namespace gonet

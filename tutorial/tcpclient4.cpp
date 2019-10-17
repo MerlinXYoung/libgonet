@@ -4,7 +4,7 @@
 #include <stdio.h>
 #include <libgonet/network.h>
 using namespace std;
-using namespace network;
+using namespace gonet;
 
 // 数据处理函数
 // @sess session标识

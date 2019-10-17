@@ -6,8 +6,8 @@
 #include <atomic>
 #include <libgonet/network.h>
 using namespace std;
-using namespace co;
-using namespace network;
+// using namespace co;
+using namespace gonet;
 
 void foo()
 {
@@ -54,5 +54,5 @@ void foo()
 TEST(testRandomPort, testRandomPort)
 {
     go foo;
-    co_sched.RunUntilNoTask();
+    co_sched.Start();
 }

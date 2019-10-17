@@ -1,7 +1,7 @@
 #include "tcp.h"
 #include <boost/make_shared.hpp>
 
-namespace network {
+namespace gonet {
 
     tcp::tcp()
         : Protocol(::boost::asio::ip::tcp::v4().family(), proto_type::tcp)
@@ -22,4 +22,4 @@ namespace network {
         return &obj;
     }
 
-} //namespace network
+} //namespace gonet

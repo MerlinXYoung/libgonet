@@ -3,7 +3,7 @@
 #include <unistd.h>
 #include <boost/thread.hpp>
 #include <atomic>
-using namespace network;
+using namespace gonet;
 
 std::atomic<int> g_session_count{0};
 
@@ -44,7 +44,7 @@ int main(int argc, char* argv[])
         int threadCount = atoi(argv[3]);
         std::string url = std::string("tcp://") + ip +  ":" + std::to_string(port);
 
-        network::Server server;
+        ::gonet::Server server;
         server.SetConnectedCb(&onConnection);
         server.SetDisconnectedCb(&onDisconnection);
         server.SetReceiveCb(&onMessage);

@@ -6,7 +6,7 @@
 #endif
 using namespace std;
 using namespace co;
-using namespace network;
+using namespace gonet;
 
 int main(int argc, char** argv)
 {

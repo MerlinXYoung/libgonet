@@ -2,7 +2,7 @@
 #include <netdb.h>
 #include <arpa/inet.h>
 
-namespace network {
+namespace gonet {
 
     FakeSession SessionEntry::fake_sess;
 
@@ -29,13 +29,13 @@ namespace network {
     void FakeSession::Shutdown(bool)
     {
     }
-    network::endpoint FakeSession::LocalAddr()
+    ::gonet::endpoint FakeSession::LocalAddr()
     {
-        return network::endpoint();
+        return ::gonet::endpoint();
     }
-    network::endpoint FakeSession::RemoteAddr()
+    ::gonet::endpoint FakeSession::RemoteAddr()
     {
-        return network::endpoint();
+        return ::gonet::endpoint();
     }
     std::size_t FakeSession::GetSendQueueSize()
     {
@@ -181,4 +181,4 @@ namespace network {
         return ep;
     }
 
-} //namespace network
+} //namespace gonet

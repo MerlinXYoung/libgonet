@@ -9,7 +9,7 @@
 #include <libgo/netio/unix/hook.h>
 #define go_dispatch(...) go
 
-namespace network {
+namespace gonet {
 namespace tcp_detail {
 
     io_service& GetTcpIoService()
@@ -35,12 +35,12 @@ namespace tcp_detail {
     }
 
     TcpSession::TcpSession(shared_ptr<tcp_socket> s,
-            shared_ptr<LifeHolder> holder, OptionsData & opt,
+            shared_ptr<LifeHolder> holder, const OptionsData & opt,
             endpoint::ext_t const& endpoint_ext)
         : socket_(s), holder_(holder), recv_buf_(opt.max_pack_size_),
         max_pack_size_shrink_((std::max)(opt.max_pack_size_shrink_, opt.max_pack_size_)),
         max_pack_size_hard_((std::max)(opt.max_pack_size_hard_, opt.max_pack_size_)),
-        msg_chan_((std::size_t)-1),timer_(std::chrono::milliseconds(1))
+        msg_chan_((std::size_t)-1),timer_(std::chrono::milliseconds(1)),opt_(opt),cb_(opt)
     {
         boost_ec ignore_ec;
         local_addr_ = endpoint(s->native_socket().local_endpoint(ignore_ec), endpoint_ext);
@@ -61,8 +61,8 @@ namespace tcp_detail {
     {
         //co::initialize_socket_async_methods(socket_->native_handle());
         //co::set_et_mode(socket_->native_handle());
-        if (opt_.connect_cb_)
-            opt_.connect_cb_(GetSession());
+        if (cb_.connect_cb_)
+            cb_.connect_cb_(GetSession());
 
         goReceive();
         goSend();
@@ -105,8 +105,8 @@ namespace tcp_detail {
                 if (!ec) {
                     if(n > 0) {
 //                        printf("receive %u bytes: %s\n", (unsigned)n, to_hex(&recv_buf_[pos], n).c_str());
-                        if (this->opt_.receive_cb_) {
-                            size_t consume = this->opt_.receive_cb_(GetSession(), recv_buf_.data(), n + pos);
+                        if (this->cb_.receive_cb_) {
+                            size_t consume = this->cb_.receive_cb_(GetSession(), recv_buf_.data(), n + pos);
                             if (consume == (size_t)-1)
                                 ec = MakeNetworkErrorCode(eNetworkErrorCode::ec_data_parse_error);
                             else {
@@ -349,8 +349,8 @@ retry_poll:
 
         // 这个回调会减少TcpSession的引用计数, 进入析构. 因此一定要放在函数尾部。
         // 并且前面不能用Guard类操作.
-        if (this->opt_.disconnect_cb_)
-            this->opt_.disconnect_cb_(GetSession(), close_ec_);
+        if (this->cb_.disconnect_cb_)
+            this->cb_.disconnect_cb_(GetSession(), close_ec_);
     }
 
     void TcpSession::SendNoDelay(Buffer && buf, SndCb const& cb)
@@ -586,13 +586,13 @@ retry_poll:
     void TcpServer::Accept()
     {
         auto this_ptr = this->shared_from_this();
-        tcp_context ctx(tcp_socket::create_tcp_context(opt_.ssl_option_));
+        ssl_context ssl_ctx(tcp_socket::create_context(opt_.ssl_option_));
 
         for (;;)
         {
-            shared_ptr<tcp_socket> s(new tcp_socket(GetTcpIoService(),
-                        local_addr_.proto() == proto_type::tcp ? tcp_socket_type_t::tcp : tcp_socket_type_t::ssl,
-                        ctx));
+            shared_ptr<tcp_socket> s(local_addr_.proto() == proto_type::tcp ? 
+                new tcp_socket(GetTcpIoService()): new tcp_socket(GetTcpIoService(), ssl_ctx));
+
 
             // aspect before accept
             if (opt_.accept_aspect_.before_aspect)
@@ -644,16 +644,17 @@ retry_poll:
                     }
                 }
 
-                sess->SetSndTimeout(opt_.sndtimeo_)
-                    .SetConnectedCb(opt_.connect_cb_)
-                    .SetReceiveCb(opt_.receive_cb_)
-                    .SetDisconnectedCb(boost::bind(&TcpServer::OnSessionClose, this, _1, _2))
-                    .goStart();
+                // sess->SetSndTimeout(opt_.sndtimeo_)
+                //     .SetConnectedCb(opt_.connect_cb_)
+                //     .SetReceiveCb(opt_.receive_cb_)
+                //     .SetDisconnectedCb(boost::bind(&TcpServer::OnSessionClose, this, _1, _2))
+                    sess->cb_.disconnect_cb_ = boost::bind(&TcpServer::OnSessionClose, this, _1, _2);
+                    sess->goStart();
             };
         }
     }
 
-    void TcpServer::OnSessionClose(::network::SessionEntry id, boost_ec const& ec)
+    void TcpServer::OnSessionClose(::gonet::SessionEntry id, boost_ec const& ec)
     {
         // 后面的erase会导致TcpServer引用计数减少, 可能进入析构函数.
         // 此处引用计数guard以保证析构函数结束后不再执行解锁操作.
@@ -682,10 +683,9 @@ retry_poll:
         std::unique_lock<co_mutex> lock(connect_mtx_, std::defer_lock);
         if (!lock.try_lock()) return MakeNetworkErrorCode(eNetworkErrorCode::ec_connecting);
 
-        tcp_context ctx(tcp_socket::create_tcp_context(opt_.ssl_option_));
-        shared_ptr<tcp_socket> s(new tcp_socket(GetTcpIoService(),
-                    addr.proto() == proto_type::tcp ? tcp_socket_type_t::tcp : tcp_socket_type_t::ssl,
-                    ctx));
+        ssl_context ctx(tcp_socket::create_context(opt_.ssl_option_));
+        shared_ptr<tcp_socket> s(addr.proto() == proto_type::tcp ? new tcp_socket(GetTcpIoService()): new tcp_socket(GetTcpIoService(), ctx));
+
         boost_ec ec;
         s->native_socket().connect(addr, ec);
         if (ec) return ec;
@@ -694,10 +694,11 @@ retry_poll:
         if (ec) return ec;
 
         sess_.reset(new TcpSession(s, this->shared_from_this(), opt_, addr.ext()));
-        sess_->SetSndTimeout(opt_.sndtimeo_)
-            .SetConnectedCb(opt_.connect_cb_)
-            .SetReceiveCb(opt_.receive_cb_)
-            .SetDisconnectedCb(boost::bind(&TcpClient::OnSessionClose, this, _1, _2));
+        // sess_->SetSndTimeout(opt_.sndtimeo_)
+        //     .SetConnectedCb(opt_.connect_cb_)
+        //     .SetReceiveCb(opt_.receive_cb_)
+        //     .SetDisconnectedCb(boost::bind(&TcpClient::OnSessionClose, this, _1, _2));
+        sess_->cb_.disconnect_cb_ = boost::bind(&TcpClient::OnSessionClose, this, _1, _2);
 
         auto sess = sess_;
         go_dispatch(egod_robin) [sess] {
@@ -710,7 +711,7 @@ retry_poll:
         return sess_ ? sess_->GetSession() : SessionEntry();
     }
 
-    void TcpClient::OnSessionClose(::network::SessionEntry id, boost_ec const& ec)
+    void TcpClient::OnSessionClose(::gonet::SessionEntry id, boost_ec const& ec)
     {
         // 后面的reset会导致TcpClient引用计数减少, 可能进入析构函数.
         // 此处引用计数guard以保证析构函数结束后不再执行sess_.reset后续逻辑。
@@ -722,5 +723,5 @@ retry_poll:
     }
 
 } //namespace tcp_detail
-} //namespace network
+} //namespace gonet
 

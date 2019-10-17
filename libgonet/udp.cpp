@@ -1,7 +1,7 @@
 #include "udp.h"
 #include <boost/make_shared.hpp>
 
-namespace network {
+namespace gonet {
 
     udp::udp()
         : Protocol(::boost::asio::ip::udp::v4().family(), proto_type::udp)
@@ -21,4 +21,4 @@ namespace network {
         return &obj;
     }
 
-} //namespace network
+} //namespace gonet

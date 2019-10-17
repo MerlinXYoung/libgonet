@@ -4,7 +4,7 @@
 #include <stdio.h>
 #include <libgonet/network.h>
 using namespace std;
-using namespace network;
+using namespace gonet;
 
 // 数据处理函数
 // @sess session标识
@@ -27,13 +27,13 @@ int main()
     //   $ cmake .. -DENABLE_SSL=ON
     //
     // 编译程序时, 请链接openssl: -lssl -lcrypto
-#if ENABLE_SSL
+
     OptionSSL ssl_opt;
     ssl_opt.certificate_chain_file = "../sslopt/server.crt";
     ssl_opt.private_key_file = "../sslopt/server.key";
     ssl_opt.tmp_dh_file = "../sslopt/dh2048.pem";
     server.SetSSLOption(ssl_opt);
-#endif
+
 
     // Step3: 设置收到数据的处理函数
     server.SetReceiveCb(&OnMessage);

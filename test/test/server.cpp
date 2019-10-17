@@ -3,7 +3,7 @@
 #include <libgonet/network.h>
 using namespace std;
 using namespace co;
-using namespace network;
+using namespace gonet;
 
 int main(int argc, char** argv)
 {
@@ -21,13 +21,13 @@ int main(int argc, char** argv)
 
     Server server;
 
-#if ENABLE_SSL
+
     OptionSSL ssl_opt;
     ssl_opt.certificate_chain_file = "server.crt";
     ssl_opt.private_key_file = "server.key";
     ssl_opt.tmp_dh_file = "dh2048.pem";
     server.SetSSLOption(ssl_opt);
-#endif
+
 
     server.SetConnectedCb([&](SessionEntry sess){
         printf("connected from %s:%d\n", sess->RemoteAddr().address().to_string().c_str(), sess->RemoteAddr().port());

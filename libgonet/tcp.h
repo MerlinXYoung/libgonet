@@ -3,7 +3,7 @@
 #include "tcp_detail.h"
 #include "abstract.h"
 
-namespace network {
+namespace gonet {
 
 class tcp : public Protocol
 {
@@ -19,4 +19,4 @@ public:
     static tcp* instance();
 };
 
-}//namespace network
+}//namespace gonet
