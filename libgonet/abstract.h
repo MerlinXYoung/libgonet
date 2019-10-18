@@ -141,6 +141,15 @@ namespace gonet {
 
         // storage
         boost::any & Storage() { return storage_; }
+        const boost::any & Storage() const{ return storage_; }
+        template<class T>
+        T& Get() {
+            return boost::any_cast<T&>(Storage());
+        }
+        template<class T>
+        const T& Get()const {
+            return boost::any_cast<const T&>(Storage());
+        }
 
     private:
         boost::any storage_;
