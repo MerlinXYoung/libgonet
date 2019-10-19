@@ -11,7 +11,7 @@ endif()
 
 option(ENABLE_SYS_LIBGO "system libgo" ON)
 
-option(ENABLE_TUTORIAL "enable build tutorial" OFF)
+option(ENABLE_TUTORIAL "enable build tutorial" ON)
 if(ENABLE_SYS_LIBGO)
 	set(Libgo_DIR /usr/local/libgo)
 	message(STATUS "ENABLE_SYS_LIBGO:${ENABLE_SYS_LIBGO} ${Libgo_DIR}")

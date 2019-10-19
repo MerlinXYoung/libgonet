@@ -17,7 +17,14 @@ size_t OnMessage(SessionEntry sess, const char* data, size_t bytes)
     sess->Shutdown();   // 收到回复后关闭连接
     return bytes;
 }
-
+void OnConnect(SessionEntry)
+{
+	    printf("OnConnect\n");
+}
+void OnDisconnect(SessionEntry, boost_ec const& ec)
+{
+	    printf("OnDisconnect error:%s \n",ec.message().c_str());
+}
 int main()
 {
     // Step1: 创建一个Client对象

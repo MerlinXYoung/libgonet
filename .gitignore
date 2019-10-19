@@ -1,5 +1,2 @@
-*.o
-*.t
-*.a
-*.so
 libgonet/cmake_config.h
+build
