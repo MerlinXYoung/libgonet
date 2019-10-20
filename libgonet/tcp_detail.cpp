@@ -17,7 +17,7 @@ namespace tcp_detail {
         static io_service ios;
         return ios;
     }
-
+    co_timer TcpSession::s_timer_(&co_sched);
     void TcpSession::Msg::Done(boost_ec const& ec)
     {
         if (tid) {
@@ -40,7 +40,7 @@ namespace tcp_detail {
         : socket_(s), holder_(holder), recv_buf_(opt.max_pack_size_),
         max_pack_size_shrink_((std::max)(opt.max_pack_size_shrink_, opt.max_pack_size_)),
         max_pack_size_hard_((std::max)(opt.max_pack_size_hard_, opt.max_pack_size_)),
-        msg_chan_((std::size_t)-1),timer_(std::chrono::milliseconds(1)),opt_(opt),cb_(opt)
+        msg_chan_((std::size_t)-1),/*timer_(&co_sched),*/opt_(opt),cb_(opt)
     {
         boost_ec ignore_ec;
         local_addr_ = endpoint(s->native_socket().local_endpoint(ignore_ec), endpoint_ext);
@@ -89,6 +89,7 @@ namespace tcp_detail {
             for (;;)
             {
                 boost_ec ec;
+                //Capacity Expansion
                 std::size_t n = 0;
                 if (pos >= recv_buf_.size()) {
                     if (recv_buf_.size() >= max_pack_size_hard_)
@@ -367,7 +368,7 @@ retry_poll:
             return ;
         }
 
-        if (socket_->type() == tcp_socket_type_t::ssl) {
+        if (socket_->is_ssl()) {
             Send(std::move(buf), cb);
             return ;
         }
@@ -402,7 +403,7 @@ retry_poll:
             msg->pos = written;
             msg->send_half = true;
             if (opt_.sndtimeo_) {
-                msg->tid = timer_.ExpireAt(std::chrono::milliseconds(opt_.sndtimeo_),
+                msg->tid = s_timer_.ExpireAt(std::chrono::milliseconds(opt_.sndtimeo_),
                         [=]{
                             msg->timeout = true;
                         });
@@ -426,7 +427,7 @@ retry_poll:
             return ;
         }
 
-        if (socket_->type() == tcp_socket_type_t::ssl) {
+        if (socket_->is_ssl()) {
             Send(data, bytes, cb);
             return ;
         }
@@ -466,7 +467,7 @@ retry_poll:
             msg->pos = 0;
             msg->send_half = true;
             if (opt_.sndtimeo_) {
-                msg->tid = timer_.ExpireAt(std::chrono::milliseconds(opt_.sndtimeo_),
+                msg->tid = s_timer_.ExpireAt(std::chrono::milliseconds(opt_.sndtimeo_),
                         [=]{
                             msg->timeout = true;
                         });
@@ -494,7 +495,7 @@ retry_poll:
         auto msg = boost::make_shared<Msg>(++msg_id_, cb);
         msg->buf.swap(buf);
         if (opt_.sndtimeo_) {
-            msg->tid = timer_.ExpireAt(std::chrono::milliseconds(opt_.sndtimeo_),
+            msg->tid = s_timer_.ExpireAt(std::chrono::milliseconds(opt_.sndtimeo_),
                     [=]{
                         msg->timeout = true;
                     });
@@ -682,9 +683,16 @@ retry_poll:
         if (sess_ && sess_->IsEstab()) return MakeNetworkErrorCode(eNetworkErrorCode::ec_estab);
         std::unique_lock<co_mutex> lock(connect_mtx_, std::defer_lock);
         if (!lock.try_lock()) return MakeNetworkErrorCode(eNetworkErrorCode::ec_connecting);
-
-        ssl_context ctx(tcp_socket::create_context(opt_.ssl_option_));
-        shared_ptr<tcp_socket> s(addr.proto() == proto_type::tcp ? new tcp_socket(GetTcpIoService()): new tcp_socket(GetTcpIoService(), ctx));
+        shared_ptr<tcp_socket> s;
+        if(addr.proto() == proto_type::tcp)
+        {
+            s.reset(new tcp_socket(GetTcpIoService()));
+        }
+        else
+        {
+            ssl_context ctx(tcp_socket::create_context(opt_.ssl_option_));
+            s.reset(new tcp_socket(GetTcpIoService(), ctx));
+        }
 
         boost_ec ec;
         s->native_socket().connect(addr, ec);
@@ -721,7 +729,7 @@ retry_poll:
             opt_.disconnect_cb_(id, ec);
         sess_.reset();
     }
-
+        
 } //namespace tcp_detail
 } //namespace gonet
 

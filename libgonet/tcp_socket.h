@@ -40,10 +40,10 @@ namespace gonet {
         }
 
         ~tcp_socket(){
-            if (type_ == tcp_socket_type_t::ssl)
-                socket_.ssl_.~unique_ptr();
+            if (is_ssl())
+                delete socket_.ssl_;
             else
-                socket_.tcp_.~unique_ptr();
+                delete socket_.tcp_;
         }
         static ssl_context create_context(OptionSSL const& ssl_opt)
         {
@@ -86,30 +86,34 @@ namespace gonet {
         // }
 
 
-        tcp_socket_type_t type() const
+        inline tcp_socket_type_t type() const
         {
             return type_;
         }
 
-        tcp::socket& native_socket()
+        inline bool is_ssl()const{
+            return tcp_socket_type_t::ssl == type_;
+        }
+
+        inline tcp::socket& native_socket()
         {
 
-            if (type_ == tcp_socket_type_t::ssl)
+            if (is_ssl())
                 return socket_.ssl_->next_layer();
 
             return *socket_.tcp_;
         }
 
-        tcp::socket::native_handle_type native_handle()
+        inline tcp::socket::native_handle_type native_handle()
         {
             return native_socket().native_handle();
         }
 
-        boost::system::error_code handshake(handshake_type_t type)
+        inline boost::system::error_code handshake(handshake_type_t type)
         {
             boost::system::error_code ec;
 
-            if (type_ == tcp_socket_type_t::ssl) {
+            if (is_ssl()) {
                 return socket_.ssl_->handshake(
                         type == handshake_type_t::client ? ssl::stream_base::client : ssl::stream_base::server,
                         ec);
@@ -117,20 +121,20 @@ namespace gonet {
             return ec;
         }
 
-        boost::system::error_code shutdown(socket_base::shutdown_type type)
+        inline boost::system::error_code shutdown(socket_base::shutdown_type type)
         {
             boost::system::error_code ec;
 
-            if (type_ == tcp_socket_type_t::ssl)
+            if (is_ssl())
                 return socket_.ssl_->shutdown(ec);
             return socket_.tcp_->shutdown(type, ec);
         }
 
-        boost::system::error_code close()
+        inline boost::system::error_code close()
         {
             boost::system::error_code ec;
 
-            if (type_ == tcp_socket_type_t::ssl)
+            if (is_ssl())
                 socket_.ssl_->shutdown(ec);
 
             return native_socket().close(ec);
@@ -141,7 +145,7 @@ namespace gonet {
                     boost::system::error_code& ec)
             {
 
-                if (type_ == tcp_socket_type_t::ssl)
+                if (is_ssl())
                     return socket_.ssl_->read_some(buffers, ec);
 
                 return socket_.tcp_->read_some(buffers, ec);
@@ -152,7 +156,7 @@ namespace gonet {
                     boost::system::error_code& ec)
             {
 
-                if (type_ == tcp_socket_type_t::ssl)
+                if (is_ssl())
                     return socket_.ssl_->write_some(buffers, ec);
 
                 return socket_.tcp_->write_some(buffers, ec);
@@ -160,14 +164,27 @@ namespace gonet {
 
     private:
         tcp_socket_type_t type_;
-        union S
+        union USocket
         {
-            //char placeholder_[sizeof(std::unique_ptr<tcp::socket>)];
+#if 0
+            // char placeholder[sizeof(std::unique_ptr<tcp::socket>)];
             std::unique_ptr<tcp::socket> tcp_;
             std::unique_ptr<ssl::stream<tcp::socket>> ssl_;
-            S(tcp::socket* s):tcp_(s){}
-            S(ssl::stream<tcp::socket>* s):ssl_(s){}
-            ~S(){};
+            USocket(tcp::socket* s):tcp_(s){}
+            USocket(ssl::stream<tcp::socket>* s):ssl_(s){}
+            ~USocket(){};
+#else
+            tcp::socket* tcp_;
+            ssl::stream<tcp::socket>* ssl_;
+            USocket(tcp::socket* s):tcp_(s){}
+            USocket(ssl::stream<tcp::socket>* s):ssl_(s){}
+            ~USocket(){
+                // if(this->is_ssl())
+                //     delete ssl_;
+                // else 
+                //     delete tcp_; 
+            }
+#endif
         }socket_;
 
     };

@@ -27,11 +27,12 @@ void OnDisconnect(SessionEntry, boost_ec const& ec)
 }
 int main()
 {
+    // co_opt.debug = co::dbg_all;
     // Step1: 创建一个Client对象
     Client client;
 
     // Step2: 设置收到数据的处理函数
-    client.SetReceiveCb(&OnMessage);
+    client.SetReceiveCb(&OnMessage).SetConnectedCb(&OnConnect).SetDisconnectedCb(&OnDisconnect);
 
     // Step3: 连接
     // * 连接接口goStart接受一个url, 规则与Server的goStart接口相同,
@@ -45,11 +46,34 @@ int main()
     } else {
         printf("connected to %s:%d\n", client.LocalAddr().address().to_string().c_str(),
                 client.LocalAddr().port());
+        go[&client](){
 
-        std::string s = "Hello libgonet!";
-        client.Send(s.c_str(), s.size(), [](boost_ec ec) {
-                    printf("send ec:%s\n", ec.message().c_str());
-                });
+            char buf[1024];
+            while(true)
+            {
+                printf("please enter message:\n");
+                int n = scanf("%s",buf);
+                assert(n == 1);
+                // auto len = strlen(buf);
+                for(int i=0;i<10;++i)
+                {
+                    ostringstream oss;
+                    oss<<buf<<":"<<i;
+                    auto msg = oss.str();
+                    printf("message:%.*s\n", static_cast<int>(msg.size()), msg.c_str());
+                    client.Send(msg.data(), msg.size(), [](boost_ec ec) {
+                            printf("send ec:%s\n", ec.message().c_str());
+                        });
+                }
+
+
+            }
+        };
+
+        // std::string s = "Hello libgonet!";
+        // client.Send(s.c_str(), s.size(), [](boost_ec ec) {
+        //             printf("send ec:%s\n", ec.message().c_str());
+        //         });
     }
 
     // Step5: 启动协程调度器

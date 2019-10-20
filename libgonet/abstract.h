@@ -3,11 +3,11 @@
 #include "error.h"
 
 namespace gonet {
-
-    static const uint64_t dbg_accept_error           = co::dbg_sys_max;
-    static const uint64_t dbg_accept_debug           = co::dbg_sys_max << 1;
-    static const uint64_t dbg_session_alive          = co::dbg_sys_max << 2;
-    static const uint64_t dbg_no_delay               = co::dbg_sys_max << 3;
+    static const uint64_t dbg_libgo_max              = co::dbg_thread;
+    static const uint64_t dbg_accept_error           = dbg_libgo_max <<1;
+    static const uint64_t dbg_accept_debug           = dbg_libgo_max <<2;
+    static const uint64_t dbg_session_alive          = dbg_libgo_max <<3;
+    static const uint64_t dbg_no_delay               = dbg_libgo_max <<4;
     static const uint64_t dbg_network_max            = dbg_no_delay;
 
     enum class proto_type {
@@ -152,7 +152,7 @@ namespace gonet {
         }
 
     private:
-        boost::any storage_;
+        boost::any storage_;//stoage bussiness data
     };
 
     struct FakeSession : public SessionBase
@@ -167,7 +167,7 @@ namespace gonet {
         virtual endpoint RemoteAddr() override;
         virtual std::size_t GetSendQueueSize() override;
     };
-
+  
     class SessionEntry
     {
         static FakeSession fake_sess;
@@ -206,6 +206,7 @@ namespace gonet {
         {
             return impl_ ? impl_.get() : (SessionBase*)&fake_sess;
         }
+        // friend class tcp_detail::TcpClient;
     };
 
     typedef boost::function<size_t(SessionEntry, const char* data, size_t bytes)> ReceiveCb;

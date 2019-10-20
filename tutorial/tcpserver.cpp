@@ -20,6 +20,7 @@ size_t OnMessage(SessionEntry sess, const char* data, size_t bytes)
 
 int main()
 {
+    // co_opt.debug = co::dbg_all;
     // Step1: 创建一个Server对象
     Server server;
 

@@ -73,17 +73,19 @@ private:
 private:
 
     shared_ptr<tcp_socket> socket_;
-
-    
     shared_ptr<LifeHolder> holder_;
+
     Buffer recv_buf_;
     uint32_t max_pack_size_shrink_;
     uint32_t max_pack_size_hard_;
     uint64_t msg_id_;
+    //Send
     MsgChan msg_chan_;
+    //SendNoDealy
     MsgList msg_send_list_;
     co::LFLock send_mtx_;
-    bool sending_;
+    bool sending_;//sending_ first msg;
+
     co_mutex close_ec_mutex_;
     boost_ec close_ec_;
 
@@ -95,7 +97,8 @@ private:
     endpoint local_addr_;
     endpoint remote_addr_;
 
-    co_timer timer_;
+    // co_timer timer_;
+    static co_timer s_timer_;
 
     const OptionsUser& opt_;
     OptionsCb cb_;
@@ -141,6 +144,7 @@ class TcpClient
     : public Options<TcpClient>, public ClientBase, public LifeHolder, public boost::enable_shared_from_this<TcpClient>
 {
 public:
+    TcpClient():sess_(),connect_mtx_(){}
     boost_ec Connect(endpoint addr) override;
 
     SessionEntry GetSession() override;

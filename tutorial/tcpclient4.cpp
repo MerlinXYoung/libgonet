@@ -60,7 +60,8 @@ int main()
             while(true)
             {
                 printf("please entry:\n");
-                scanf("%s",buf);
+                int n = scanf("%s", buf);
+                assert(1 == n);
                 if(strcmp(buf,"exit")==0)
                     break;
                 uint32_t len = strlen(buf);
