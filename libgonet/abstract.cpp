@@ -54,6 +54,7 @@ namespace gonet {
         "http",
         "https",
         "zk",
+        "zmq",
     };
 
     proto_type str2proto(std::string const& s)
@@ -99,6 +100,8 @@ namespace gonet {
                 break;
             case proto_type::zk:
                 break;
+            case proto_type::zmq:
+                break;
         }
         return 0;
     }
@@ -118,6 +121,8 @@ namespace gonet {
             case proto_type::https:
                 break;
             case proto_type::zk:
+                break;
+            case proto_type::zmq:
                 break;
         }
         return 0;

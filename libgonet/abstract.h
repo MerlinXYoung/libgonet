@@ -18,6 +18,7 @@ namespace gonet {
         http,
         https,
         zk,
+        zmq,
     };
     proto_type str2proto(std::string const& s);
     std::string proto2str(proto_type proto);

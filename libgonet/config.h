@@ -27,7 +27,9 @@
 
 
 #include <boost/asio/ssl.hpp>
-
+#if _GONET_AZMQ_
+#include <azmq/socket.hpp>
+#endif
 
 // linux
 #include <signal.h>

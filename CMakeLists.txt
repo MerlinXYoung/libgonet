@@ -1,49 +1,57 @@
-cmake_minimum_required(VERSION 2.8)
+cmake_minimum_required(VERSION 3.15)
 
 
 ##################################################################################
-project(libgonet)
+project(libgonet CXX)
 
 if (CMAKE_BUILD_TYPE)
 else()
     set(CMAKE_BUILD_TYPE RELEASE)
 endif()
 
-option(ENABLE_SYS_LIBGO "system libgo" ON)
+set(CMAKE_CXX_STANDARD_REQUIRED 11)
+set(CMAKE_CXX_STANDARD 11)
+
+list(APPEND CMAKE_MODULE_PATH ${CMAKE_CURRENT_SOURCE_DIR}/cmake)
+include(${CMAKE_CURRENT_SOURCE_DIR}/cmake/prefix.cmake)
 
 option(ENABLE_TUTORIAL "enable build tutorial" ON)
-if(ENABLE_SYS_LIBGO)
-	set(Libgo_DIR /usr/local/libgo)
-	message(STATUS "ENABLE_SYS_LIBGO:${ENABLE_SYS_LIBGO} ${Libgo_DIR}")
+option(ENABLE_AZMQ "enable build tutorial" OFF)
+set(GONET_AZMQ  0)
+# if(ENABLE_SYS_LIBGO)
+# 	set(Libgo_DIR /usr/local/libgo)
+# 	message(STATUS "ENABLE_SYS_LIBGO:${ENABLE_SYS_LIBGO} ${Libgo_DIR}")
+# endif()
+if(ENABLE_AZMQ)
+    set(GONET_AZMQ 1)
 endif()
-
-configure_file(${PROJECT_SOURCE_DIR}/libgonet/cmake_config.h.in ${PROJECT_SOURCE_DIR}/libgonet/cmake_config.h)
+configure_file(${CMAKE_CURRENT_SOURCE_DIR}/libgonet/cmake_config.h.in ${CMAKE_CURRENT_SOURCE_DIR}/libgonet/cmake_config.h)
 
 message("CMAKE_BUILD_TYPE: ${CMAKE_BUILD_TYPE}")
 
 
-set(CMAKE_CXX_FLAGS "-std=c++11 -Wall -Werror -fPIC -g -pg")
+set(CMAKE_CXX_FLAGS " -Wall -Werror -fPIC -g -pg")
 set(CMAKE_CXX_FLAGS_DEBUG "-g -pg ${CMAKE_CXX_FLAGS}")
 
-set(CMAKE_PREFIX_PATH ${CMAKE_PREFIX_PATH} /usr/local/boost)
-find_package(Boost 1.65 REQUIRED)
+
+find_package(Boost 1.65 COMPONENTS context system log date_time thread chrono regex random REQUIRED)
 include_directories(${Boost_INCLUDE_DIR})
 link_directories(${Boost_LIBRARY_DIRS})
 
-aux_source_directory(libgonet SRC_LIST)
+find_package(Libgo 3.1 REQUIRED)
+include_directories(${Libgo_INCLUDE_DIR})
+link_directories(${Libgo_LIBRARY_DIR})
+if(ENABLE_AZMQ)
+    find_package(ZeroMQ 4.0 REQUIRED)
+    include_directories(${ZeroMQ_INCLUDE_DIRS})
+
+    include_directories(/usr/local/azmq/include)
+endif()
+file(GLOB_RECURSE SRC_LIST "libgonet/*.cpp" "libgonet/*.h")
 include_directories("${PROJECT_SOURCE_DIR}")
 include_directories("${PROJECT_SOURCE_DIR}/libgonet")
-if (ENABLE_SYS_LIBGO)
-	list(APPEND CMAKE_MODULE_PATH ${PROJECT_SOURCE_DIR})
-	message(STATUS "CMAKE_MODULE_PATH:${CMAKE_MODULE_PATH}")
-	find_package(Libgo REQUIRED)
-	include_directories(${Libgo_INCLUDE_DIR})
-	link_directories(${Libgo_LIBRARY_DIR})
-else()
-	include_directories("${PROJECT_SOURCE_DIR}/third_party/libgo")
-	include_directories("${PROJECT_SOURCE_DIR}/third_party/libgo/libgo")
-	include_directories("${PROJECT_SOURCE_DIR}/third_party/libgo/libgo/linux")
-endif()
+
+
 set(TARGET "libgonet")
 
 add_library("${TARGET}" STATIC ${SRC_LIST})
@@ -52,17 +60,9 @@ add_library("${TARGET}" STATIC ${SRC_LIST})
 
 # add_subdirectory(app)
 
-#set(CMAKE_INSTALL_PREFIX "/usr/local")
 install(TARGETS ${TARGET} LIBRARY DESTINATION "lib" ARCHIVE DESTINATION "lib")
 install(DIRECTORY libgonet/ DESTINATION "include/libgonet" FILES_MATCHING PATTERN "*.h")
 
-if (NOT ENABLE_SYS_LIBGO)
-    option(ENABLE_BOOST_CONTEXT "use boost coroutine" ON)
-	if (ENABLE_SYSTEM_LIBGO)
-	else()
-		add_subdirectory("third_party/libgo")
-	endif()
-endif()
 
 if(ENABLE_TUTORIAL)
 	add_subdirectory(tutorial)
