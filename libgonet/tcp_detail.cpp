@@ -17,7 +17,7 @@ namespace tcp_detail {
         static io_service ios;
         return ios;
     }
-    co_timer TcpSession::s_timer_(&co_sched);
+
     void TcpSession::Msg::Done(boost_ec const& ec)
     {
         if (tid) {
@@ -403,7 +403,7 @@ retry_poll:
             msg->pos = written;
             msg->send_half = true;
             if (opt_.sndtimeo_) {
-                msg->tid = s_timer_.ExpireAt(std::chrono::milliseconds(opt_.sndtimeo_),
+                msg->tid = timer_.ExpireAt(std::chrono::milliseconds(opt_.sndtimeo_),
                         [=]{
                             msg->timeout = true;
                         });
@@ -467,7 +467,7 @@ retry_poll:
             msg->pos = 0;
             msg->send_half = true;
             if (opt_.sndtimeo_) {
-                msg->tid = s_timer_.ExpireAt(std::chrono::milliseconds(opt_.sndtimeo_),
+                msg->tid = timer_.ExpireAt(std::chrono::milliseconds(opt_.sndtimeo_),
                         [=]{
                             msg->timeout = true;
                         });
@@ -495,7 +495,7 @@ retry_poll:
         auto msg = boost::make_shared<Msg>(++msg_id_, cb);
         msg->buf.swap(buf);
         if (opt_.sndtimeo_) {
-            msg->tid = s_timer_.ExpireAt(std::chrono::milliseconds(opt_.sndtimeo_),
+            msg->tid = timer_.ExpireAt(std::chrono::milliseconds(opt_.sndtimeo_),
                     [=]{
                         msg->timeout = true;
                     });

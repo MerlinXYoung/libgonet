@@ -98,7 +98,7 @@ private:
     endpoint remote_addr_;
 
     // co_timer timer_;
-    static co_timer s_timer_;
+    co_timer timer_;
 
     const OptionsUser& opt_;
     OptionsCb cb_;
